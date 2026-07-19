@@ -29,7 +29,7 @@
 - Produces `checkTypingAnswer(level, rawInput)`: 返回 `{ correct: boolean, hint: string }`。
 - Produces `updateTypingStats(stats, correct)`: 返回 `{ streak, bestStreak, answered, correct }`。
 
-- [ ] **Step 1: Write the failing test**
+- [x] **Step 1: Write the failing test**
 
 ```js
 import assert from "node:assert/strict";
@@ -65,13 +65,13 @@ test("updates streak and best streak after correct and incorrect attempts", () =
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `node --test tests/typing-camp.test.mjs`
 
 Expected: `ERR_MODULE_NOT_FOUND` because `app/lib/typing-camp.mjs` does not yet exist.
 
-- [ ] **Step 3: Write minimal implementation**
+- [x] **Step 3: Write minimal implementation**
 
 Create `app/lib/typing-camp.mjs` with no browser imports. Define fixed levels for the listed commands, including these required records:
 
@@ -85,13 +85,13 @@ Create `app/lib/typing-camp.mjs` with no browser imports. Define fixed levels fo
 
 Implement `checkTypingAnswer` by trimming only leading/trailing whitespace. On a mismatch, compare strings from left to right; if input ends first return `还缺少：${expected.slice(input.length, input.length + 1)}`; otherwise return `第 ${index + 1} 个字符应为：${expected[index]}`. Return the exact success hint asserted in the test. Implement `updateTypingStats` with immutable object returns.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `node --test tests/typing-camp.test.mjs`
 
 Expected: 5 passing tests and 0 failures.
 
-- [ ] **Step 5: Commit**
+- [x] **Step 5: Commit**
 
 ```bash
 git add app/lib/typing-camp.mjs tests/typing-camp.test.mjs
@@ -110,7 +110,7 @@ git commit -m "feat: add GoC typing camp drills"
 - Consumes existing `runGoC(source)` and `paintCanvas(canvas, operations)`.
 - Produces an accessible `<section>` with text `魔法画笔打字训练营`，可选择 `热身档` 或 `挑战档`。
 
-- [ ] **Step 1: Write the failing render test**
+- [x] **Step 1: Write the failing render test**
 
 Append this test to `tests/rendered-html.test.mjs`:
 
@@ -126,13 +126,13 @@ test("server-renders the two-mode typing camp", async () => {
 });
 ```
 
-- [ ] **Step 2: Run test to verify it fails**
+- [x] **Step 2: Run test to verify it fails**
 
 Run: `npm test`
 
 Expected: build completes, then `server-renders the two-mode typing camp` fails because the page lacks the training-camp text.
 
-- [ ] **Step 3: Add minimal page state and behavior**
+- [x] **Step 3: Add minimal page state and behavior**
 
 In `app/page.tsx`, import the three Task 1 exports. Add these React state values inside `Home`:
 
@@ -167,13 +167,13 @@ Insert the section after the real runner section. It must include:
 
 Bind Enter to submission. Disable submit only after a correct answer; keep it active after an error. Display hints with `aria-live="polite"`. Correct answers state that the canvas has drawn the result; incorrect answers use only `checkTypingAnswer` hints. Add scoped CSS in `app/globals.css` for a child-friendly two-column layout, large monospace input, selected-mode state, green correct hint and coral error hint; preserve existing responsive styling.
 
-- [ ] **Step 4: Run test to verify it passes**
+- [x] **Step 4: Run test to verify it passes**
 
 Run: `npm test`
 
 Expected: existing tests plus `server-renders the two-mode typing camp` pass.
 
-- [ ] **Step 5: Run lint and commit**
+- [x] **Step 5: Run lint and commit**
 
 ```bash
 npm run lint
@@ -190,7 +190,7 @@ git commit -m "feat: add interactive GoC typing camp"
 - Consumes all code and tests from Tasks 1–2.
 - Produces a verified local build with no lint errors.
 
-- [ ] **Step 1: Run the full automated verification**
+- [x] **Step 1: Run the full automated verification**
 
 ```bash
 npm test
@@ -199,12 +199,12 @@ npm run lint
 
 Expected: all Node tests pass; Vinext build exits 0; ESLint exits 0.
 
-- [ ] **Step 2: Perform the local interaction check**
+- [x] **Step 2: Perform the local interaction check**
 
 Run: `npm run dev`
 
 Expected: the terminal prints a local URL. In the browser, submit `fd` in 热身档, then `fd(100);` in 挑战档, then `for` and `for(i=0;i<4;i++)`; each correct answer updates the canvas. Enter `fd(100)` once and verify the message is `还缺少：;`.
 
-- [ ] **Step 3: Commit only a direct verification fix, if required**
+- [x] **Step 3: Commit only a direct verification fix, if required**
 
-If and only if a defect is found, add a focused regression test, make the smallest change that passes it, then run both verification commands again and commit with `fix: correct typing camp interaction`.
+No verification defect occurred, so an additional fix commit was not needed.
