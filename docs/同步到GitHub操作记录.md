@@ -32,6 +32,13 @@ git -C site status --short --branch
 2. `gh` 保存的 `superobk` token 已失效，因此无法用 GitHub CLI 读取仓库元数据或写入远端。
 3. SSH 到 GitHub 未建立可用会话；HTTPS 只读检查成功且没有任何输出，说明目标仓库目前没有 refs（空仓库）。
 4. 已将当前项目的本地 Git 提交署名设置为 `superobk <superobk@users.noreply.github.com>`。
+5. 已请求执行下列外部写入操作，但安全网关要求在说明“将本地网站源码导出至第三方 GitHub 仓库”的风险后再次确认，因此命令**未执行**，远端仓库没有任何改动：
+
+   ```sh
+   git -C site remote add github https://github.com/superobk/GoC-Tutorials.git
+   git -C site remote -v
+   git -C site push -u github main
+   ```
 
 ## 待认证恢复后执行的指令
 
