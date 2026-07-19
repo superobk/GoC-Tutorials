@@ -70,3 +70,29 @@ git push -u github main
 ```
 
 这些指令会将当前 `main` 完整推送到空的 `superobk/GoC-Tutorials` 仓库；不会使用强制推送。
+
+## 2026-07-19：Windows 启动器改为打开本地地址
+
+### 改动范围
+
+- 修改 `启动GoC课程站.bat`：不再打开私有云端预览地址。
+- 启动本地 `npm run dev` 后，从输出日志识别 Vinext 实际提供的 `Local:` 地址并打开；因此端口 3000 被占用时，仍能打开自动切换后的本地地址。
+- 保留“先尝试 `git pull --ff-only`，失败不阻止启动”的行为。
+
+### 本次实际操作
+
+文件改动使用 `apply_patch` 完成；终端中执行并核验的指令如下（不含凭据）：
+
+```sh
+sed -n '1,260p' 启动GoC课程站.bat
+rg -n -- "git pull --ff-only|npm run dev|Local:|CLOUD_PREVIEW_URL|start" 启动GoC课程站.bat
+git add 启动GoC课程站.bat docs/同步到GitHub操作记录.md
+git commit -m "fix: open local URL from Windows launcher"
+git push
+git status --short --branch
+```
+
+### 结果
+
+- 启动器只会打开本地课程站地址；不再打开私有云端预览。
+- 本次提交会以普通 `git push` 同步到 `superobk/GoC-Tutorials`，不使用强制推送。

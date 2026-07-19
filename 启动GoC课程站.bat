@@ -3,8 +3,6 @@ setlocal
 chcp 65001 >nul
 cd /d "%~dp0"
 
-set "CLOUD_PREVIEW_URL=https://goc-magic-paint.supergragra.chatgpt.site"
-
 echo.
 echo ===== GoC 魔法画笔课程站 =====
 echo.
@@ -41,11 +39,27 @@ if not exist "node_modules" (
 )
 
 echo.
-echo [3/3] 启动本地课程站，并打开私有云端预览...
-echo 本地服务的实际地址会显示在新打开的命令窗口中。
-start "GoC 本地课程站" cmd /k "npm run dev"
-start "GoC 私有云端预览" "%CLOUD_PREVIEW_URL%"
+echo [3/3] 启动本地课程站，并自动打开实际本地地址...
+set "DEV_LOG=%TEMP%\goc-magic-paint-dev.log"
+del /q "%DEV_LOG%" >nul 2>&1
+start "GoC 本地课程站" cmd /k call npm run dev ^> "%DEV_LOG%" 2^>^&1
+
+set "LOCAL_URL="
+for /l %%I in (1,1,20) do (
+  if exist "%DEV_LOG%" (
+    for /f "tokens=3" %%U in ('findstr /C:"Local:" "%DEV_LOG%"') do set "LOCAL_URL=%%U"
+  )
+  if defined LOCAL_URL goto :open_local
+  timeout /t 1 >nul
+)
+
+set "LOCAL_URL=http://localhost:3000/"
+echo [提示] 尚未识别到服务地址，已尝试打开默认地址：%LOCAL_URL%
+
+:open_local
+echo 正在打开：%LOCAL_URL%
+start "GoC 本地课程站" "%LOCAL_URL%"
 
 echo.
-echo 已启动。本地服务会持续运行；云端预览如要求登录，请使用 ChatGPT 登录。
+echo 已启动。本地服务会持续运行；关闭服务窗口即可停止。
 endlocal
