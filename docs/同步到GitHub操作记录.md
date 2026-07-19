@@ -24,6 +24,14 @@ git -C site config --get user.email
 git -C site add docs/同步到GitHub操作记录.md
 git -C site commit -m "docs: record GitHub sync attempts"
 git -C site status --short --branch
+git -C site remote -v
+git -C site remote add github https://github.com/superobk/GoC-Tutorials.git
+git -C site remote -v
+git -C site push -u github main
+git -C site add docs/同步到GitHub操作记录.md
+git -C site commit -m "docs: record completed GitHub sync"
+git -C site push
+git -C site ls-remote --heads github main
 ```
 
 ## 结果摘要
@@ -39,6 +47,15 @@ git -C site status --short --branch
    git -C site remote -v
    git -C site push -u github main
    ```
+6. 用户已明确确认导出范围后，成功新增本地 `github` 远端并执行普通推送：
+
+   ```text
+   To https://github.com/superobk/GoC-Tutorials.git
+    * [new branch]      main -> main
+   branch 'main' set up to track 'github/main'.
+   ```
+
+   推送没有使用 `--force`；远端 `main` 已包含课程网站、GoC 真实运行器、决赛题型练习与本操作记录。
 
 ## 待认证恢复后执行的指令
 
