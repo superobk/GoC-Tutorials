@@ -20,11 +20,14 @@ test("server-renders the GoC companion learning site", async () => {
 
   const html = await response.text();
   assert.match(html, /<title>魔法画笔 GoC 陪读探险站<\/title>/i);
-  assert.match(html, /魔法画笔探险队/);
-  assert.match(html, /探险路线/);
-  assert.match(html, /运行画笔/);
-  assert.match(html, /家长陪读/);
-  assert.match(html, /坐标寻宝/);
+  assert.match(html, /提高组决赛备赛站/);
+  assert.match(html, /决赛能力路线/);
+  assert.match(html, /真实运行/);
+  assert.match(html, /6道决赛编程路线/);
+  assert.match(html, /真实运行画布/);
+  assert.match(html, /决赛题型复习/);
+  assert.match(html, /坐标与路径/);
+  assert.match(html, /5类题型 · 20道样题/);
 });
 
 test("keeps the finished site free of starter preview metadata", async () => {
