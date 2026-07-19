@@ -126,3 +126,37 @@ git status --short --branch
 
 - 服务未确认可访问前，启动器不会再错误打开默认 3000 地址。
 - `npm run dev` 在独立的 `cmd /k` 窗口内持续运行，只有用户关闭该窗口才会停止。
+
+## 2026-07-19：修复 Windows 的 npm 环境变量错误
+
+### 原因与改动
+
+Windows `cmd` 不支持 macOS/Linux 形式的行内环境变量，例如：
+
+```text
+WRANGLER_LOG_PATH=.wrangler/wrangler.log vinext dev
+```
+
+因此 Windows 执行 `npm run dev` 时会把 `WRANGLER_LOG_PATH` 误当作命令。本次把 `dev`、`build`、`start` 改为直接执行 `vinext`，不再依赖 Unix 环境变量前缀。
+
+### 本次实际操作
+
+文件改动使用 `apply_patch` 完成；终端中执行并核验的指令如下（不含凭据）：
+
+```sh
+sed -n '1,180p' package.json
+sed -n '38,72p' 启动GoC课程站.bat
+rg -n -- "WRANGLER_LOG_PATH|npm run dev" package.json 启动GoC课程站.bat tests
+node --test tests/windows-launcher.test.mjs
+npm test
+npm run lint
+git add package.json tests/windows-launcher.test.mjs docs/同步到GitHub操作记录.md
+git commit -m "fix: support Windows npm scripts"
+git push
+git status --short --branch
+```
+
+### 结果
+
+- Windows 双击启动器时，`npm run dev` 不会再报“`WRANGLER_LOG_PATH` is not recognized”。
+- 新增自动检查，防止未来重新加入 Unix 专用的脚本前缀。
