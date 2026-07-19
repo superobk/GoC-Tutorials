@@ -36,3 +36,13 @@ test("keeps the finished site free of starter preview metadata", async () => {
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape|react-loading-skeleton/i);
   await assert.rejects(access(new URL("../app/_sites-preview/SkeletonPreview.tsx", import.meta.url)));
 });
+
+test("server-renders the two-mode typing camp", async () => {
+  const response = await render();
+  const html = await response.text();
+  assert.match(html, /魔法画笔打字训练营/);
+  assert.match(html, /热身档：指令名/);
+  assert.match(html, /挑战档：完整命令/);
+  assert.match(html, /输入魔法指令/);
+  assert.match(html, /最高连击/);
+});

@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { finalsPracticeTypes } from "./lib/finals-practice.mjs";
 import { runGoC } from "./lib/goc-runner.mjs";
+import { checkTypingAnswer, typingLevels, updateTypingStats } from "./lib/typing-camp.mjs";
 
 type Lesson = { id: number; title: string; focus: string; code: string; color: string };
 type Point = { x: number; y: number };
@@ -89,13 +90,42 @@ export default function Home() {
   const [selected, setSelected] = useState("");
   const [revealed, setRevealed] = useState(false);
   const [completed, setCompleted] = useState<number[]>([]);
+  const [typingMode, setTypingMode] = useState<"warmup" | "challenge">("warmup");
+  const [typingIndex, setTypingIndex] = useState(0);
+  const [typingInput, setTypingInput] = useState("");
+  const [typingHint, setTypingHint] = useState("输入指令后按 Enter 或点击提交。");
+  const [typingHintTone, setTypingHintTone] = useState<"ready" | "right" | "wrong">("ready");
+  const [typingSolved, setTypingSolved] = useState(false);
+  const [typingStats, setTypingStats] = useState({ streak: 0, bestStreak: 0, answered: 0, correct: 0 });
+  const [typingStatsLoaded, setTypingStatsLoaded] = useState(false);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const activeType = finalsPracticeTypes[typeIndex];
   const question = activeType.questions[questionIndex];
   const answeredCount = completed.length;
   const correct = revealed && selected === question.answer;
+  const typingModeLevels = typingLevels.filter((level) => level.mode === typingMode);
+  const typingLevel = typingModeLevels[typingIndex % typingModeLevels.length];
+  const typingAccuracy = typingStats.answered ? Math.round((typingStats.correct / typingStats.answered) * 100) : 0;
 
   useEffect(() => { if (canvasRef.current) paintCanvas(canvasRef.current, result.operations); }, [result]);
+
+  useEffect(() => {
+    queueMicrotask(() => {
+      const saved = localStorage.getItem("goc-typing-stats");
+      if (saved) {
+        try {
+          const parsed = JSON.parse(saved) as Record<string, unknown>;
+          const fields = ["streak", "bestStreak", "answered", "correct"] as const;
+          if (fields.every((field) => typeof parsed[field] === "number" && Number.isFinite(parsed[field]) && (parsed[field] as number) >= 0)) {
+            setTypingStats({ streak: parsed.streak as number, bestStreak: parsed.bestStreak as number, answered: parsed.answered as number, correct: parsed.correct as number });
+          }
+        } catch { /* Ignore a malformed local progress record. */ }
+      }
+      setTypingStatsLoaded(true);
+    });
+  }, []);
+
+  useEffect(() => { if (typingStatsLoaded) localStorage.setItem("goc-typing-stats", JSON.stringify(typingStats)); }, [typingStats, typingStatsLoaded]);
 
   const runnerStatus = useMemo(() => result.error ? `未运行：${result.error}` : `已执行 ${result.operations.length} 个绘图动作`, [result]);
 
@@ -111,6 +141,26 @@ export default function Home() {
 
   function nextQuestion() { setQuestionIndex((questionIndex + 1) % activeType.questions.length); setSelected(""); setRevealed(false); }
 
+  function chooseTypingMode(mode: "warmup" | "challenge") {
+    setTypingMode(mode); setTypingIndex(0); setTypingInput(""); setTypingSolved(false); setTypingHint("新任务准备好了，输入指令试试看。"); setTypingHintTone("ready");
+  }
+
+  function submitTypingAnswer() {
+    if (typingSolved) return;
+    const check = checkTypingAnswer(typingLevel, typingInput);
+    setTypingStats((stats) => updateTypingStats(stats, check.correct));
+    if (!check.correct) { setTypingHint(check.hint); setTypingHintTone("wrong"); return; }
+    const drawing = runGoC(typingLevel.previewCode);
+    setResult(drawing); setTypingSolved(true); setTypingHintTone("right");
+    setTypingHint(drawing.error ? "答对了！这道画笔动作暂时没有画出来，换下一关继续挑战。" : "答对了！真实画布已经画出了这个动作。向上看看吧！");
+    document.querySelector(".runner-section")?.scrollIntoView({ behavior: "smooth", block: "center" });
+  }
+
+  function nextTypingLevel() {
+    setTypingIndex((index) => (index + 1) % typingModeLevels.length);
+    setTypingInput(""); setTypingSolved(false); setTypingHint("下一张任务卡来了，慢慢输入也没关系。"); setTypingHintTone("ready");
+  }
+
   return <main className="exam-shell">
     <nav className="topbar"><div className="brand"><span>✦</span>魔法画笔 <small>提高组决赛备赛站</small></div><div className="exam-score"><b>横琴决赛路线</b><span>20单选 + 6编程</span></div></nav>
 
@@ -119,6 +169,8 @@ export default function Home() {
     <section className="route-section"><div className="section-heading"><div><p className="eyebrow">LEARN → REVIEW → SIMULATE</p><h2>决赛能力路线</h2></div><p>前5站按考题高频能力排列；第6站进入输入、数组与综合题。</p></div><div className="route-grid">{lessons.map((lesson) => <button key={lesson.id} className={`route-card ${lesson.color} ${activeLesson.id === lesson.id ? "selected" : ""}`} onClick={() => chooseLesson(lesson)}><span>0{lesson.id}</span><strong>{lesson.title}</strong><small>{lesson.focus}</small><b>{activeLesson.id === lesson.id ? "正在学习" : "打开画布"}</b></button>)}</div></section>
 
     <section className="runner-section" aria-label="真实运行画布"><div className="section-heading"><div><p className="eyebrow">SAFE GOC SUBSET RUNNER</p><h2>真实运行画布</h2></div><p>支持常用笔命令、变量、算术表达式和基础 <code>for</code>；不支持的语句会明确报错。</p></div><div className="runner-grid"><div className="editor-card"><div className="editor-header"><span><i/><i/><i/></span><b>{activeLesson.title}.goc</b><button onClick={() => navigator.clipboard?.writeText(code)}>复制</button></div><textarea value={code} onChange={(event) => setCode(event.target.value)} spellCheck="false" aria-label="GoC代码编辑器"/><div className="runner-actions"><button className="run-button" onClick={runCode}>▶ 真实运行</button><span className={result.error ? "runner-error" : "runner-ok"}>{runnerStatus}</span></div></div><div className="canvas-card"><div className="canvas-header"><b>画布输出</b><span>{result.error ? "需要修正代码" : "坐标中心：0,0"}</span></div><canvas ref={canvasRef} width="640" height="420" aria-label="GoC真实绘图结果"/><p>{result.error ? "提示：运行器不会假装成功。请根据错误说明修改为支持的教学命令。" : "提示：修改左侧代码后，点击“真实运行”即可重绘。"}</p></div></div></section>
+
+    <section className="typing-section" aria-label="GoC 打字训练营"><div className="section-heading"><div><p className="eyebrow">TYPE → SEE → REMEMBER</p><h2>魔法画笔打字训练营</h2></div><p>打字慢也没关系：先练指令名，再挑战完整命令。答对后，真实画布会立刻画出效果。</p></div><div className="typing-board"><article className="typing-mission"><div className="typing-tabs"><button type="button" className={typingMode === "warmup" ? "selected" : ""} onClick={() => chooseTypingMode("warmup")}>热身档：指令名</button><button type="button" className={typingMode === "challenge" ? "selected" : ""} onClick={() => chooseTypingMode("challenge")}>挑战档：完整命令</button></div><div className="typing-level"><span>魔法任务 {typingIndex + 1} / {typingModeLevels.length}</span><b>{typingLevel.command}</b></div><h3>{typingLevel.prompt}</h3><p>{typingMode === "warmup" ? "只输入指令名字，例如 fd。" : "注意大小写、括号、参数和分号都要正确。"}</p><label htmlFor="typing-answer">输入魔法指令</label><input id="typing-answer" className={typingHintTone} value={typingInput} disabled={typingSolved} onChange={(event) => setTypingInput(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); submitTypingAnswer(); } }} placeholder={typingMode === "warmup" ? "例如：fd" : "例如：fd(100);"} autoComplete="off" spellCheck="false"/><p className={`typing-hint ${typingHintTone}`} aria-live="polite">{typingHint}</p><div className="typing-actions"><button type="button" className="typing-submit" onClick={submitTypingAnswer} disabled={typingSolved || !typingInput.trim()}>提交指令 ✦</button><button type="button" className="typing-next" onClick={nextTypingLevel}>下一关 →</button></div></article><aside className="typing-score"><span>小小画笔手</span><strong>{typingStats.streak}</strong><b>当前连击</b><div className="typing-stats"><p><span>最高连击</span><strong>{typingStats.bestStreak}</strong></p><p><span>正确率</span><strong>{typingAccuracy}%</strong></p><p><span>累计答题</span><strong>{typingStats.answered}</strong></p></div><small>成绩只保存在这台电脑里。</small></aside></div></section>
 
     <section className="review-section"><div className="section-heading"><div><p className="eyebrow">FINALS QUESTION BANK</p><h2>决赛题型复习</h2></div><p>每类4题，覆盖决赛卷中的选择题知识点，并将答案转化为可复习的规则。</p></div><div className="review-layout"><div className="type-list">{finalsPracticeTypes.map((type, index) => <button key={type.id} className={`type-button ${type.color} ${index === typeIndex ? "selected" : ""}`} onClick={() => chooseType(index)}><span>0{index + 1}</span><div><strong>{type.title}</strong><small>{type.focus}</small></div><b>4题</b></button>)}</div><article className="question-card"><div className="question-meta"><span className={`tag ${activeType.color}`}>{question.tag}</span><span>第 {questionIndex + 1} / 4 题</span></div><h3>{question.prompt}</h3><div className="options">{question.options.map((option) => <button key={option} className={`${selected === option ? "picked" : ""} ${revealed && option === question.answer ? "right" : ""} ${revealed && selected === option && option !== question.answer ? "wrong" : ""}`} onClick={() => !revealed && setSelected(option)}><span>{String.fromCharCode(65 + question.options.indexOf(option))}</span>{option}</button>)}</div>{revealed ? <div className={`answer-box ${correct ? "correct" : "incorrect"}`}><strong>{correct ? "答对了！" : `正确答案：${question.answer}`}</strong><p>{question.explanation}</p></div> : <p className="question-tip">先独立选择，再查看解析。答错不是扣分，而是告诉我们下一步该复习什么。</p>}<div className="question-actions"><button className="outline-button" onClick={() => { setSelected(""); setRevealed(false); }}>重做</button><button className="answer-button" disabled={!selected || revealed} onClick={() => revealAnswer(selected)}>查看解析</button>{revealed && <button className="next-button" onClick={nextQuestion}>下一题 →</button>}</div></article></div></section>
 
