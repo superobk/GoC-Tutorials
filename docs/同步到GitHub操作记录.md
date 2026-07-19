@@ -96,3 +96,33 @@ git status --short --branch
 
 - 启动器只会打开本地课程站地址；不再打开私有云端预览。
 - 本次提交会以普通 `git push` 同步到 `superobk/GoC-Tutorials`，不使用强制推送。
+
+## 2026-07-19：Windows 本地测试站启动修复
+
+### 原因与改动
+
+旧版通过后台日志推断开发端口，日志未及时写入时会错误回退到 3000，导致浏览器可能在服务未启动或端口已变更时打开。本次改为：
+
+1. 用 PowerShell 在 3000–3999 中选择未监听的端口；
+2. 使用固定端口启动 `npm run dev -- --host 127.0.0.1 --port <端口> --strictPort`；
+3. 保持新的“GoC 本地课程站”命令窗口运行；
+4. 轮询本地 HTTP 响应，确认测试站可访问后才打开浏览器。
+
+### 本次实际操作
+
+文件改动使用 `apply_patch` 完成；终端中执行并核验的指令如下（不含凭据）：
+
+```sh
+sed -n '1,260p' 启动GoC课程站.bat
+rg -n -- "LOCAL_PORT|LOCAL_URL|strictPort|Invoke-WebRequest|git pull --ff-only|CLOUD_PREVIEW_URL" 启动GoC课程站.bat
+git diff --check
+git add 启动GoC课程站.bat docs/同步到GitHub操作记录.md
+git commit -m "fix: keep Windows local dev server running"
+git push
+git status --short --branch
+```
+
+### 结果
+
+- 服务未确认可访问前，启动器不会再错误打开默认 3000 地址。
+- `npm run dev` 在独立的 `cmd /k` 窗口内持续运行，只有用户关闭该窗口才会停止。

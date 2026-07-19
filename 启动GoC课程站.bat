@@ -40,26 +40,28 @@ if not exist "node_modules" (
 
 echo.
 echo [3/3] 启动本地课程站，并自动打开实际本地地址...
-set "DEV_LOG=%TEMP%\goc-magic-paint-dev.log"
-del /q "%DEV_LOG%" >nul 2>&1
-start "GoC 本地课程站" cmd /k call npm run dev ^> "%DEV_LOG%" 2^>^&1
+set "LOCAL_PORT="
+for /f %%P in ('powershell -NoProfile -Command "$used = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners().Port; 3000..3999 ^| Where-Object { $used -notcontains $_ } ^| Select-Object -First 1"') do set "LOCAL_PORT=%%P"
+if not defined LOCAL_PORT set "LOCAL_PORT=3000"
+set "LOCAL_URL=http://127.0.0.1:%LOCAL_PORT%/"
 
-set "LOCAL_URL="
+echo 本地测试站地址：%LOCAL_URL%
+start "GoC 本地课程站（请保持此窗口打开）" cmd /k "npm run dev -- --host 127.0.0.1 --port %LOCAL_PORT% --strictPort"
+
 for /l %%I in (1,1,20) do (
-  if exist "%DEV_LOG%" (
-    for /f "tokens=3" %%U in ('findstr /C:"Local:" "%DEV_LOG%"') do set "LOCAL_URL=%%U"
-  )
-  if defined LOCAL_URL goto :open_local
+  powershell -NoProfile -Command "try { Invoke-WebRequest -UseBasicParsing -TimeoutSec 1 '%LOCAL_URL%' ^| Out-Null; exit 0 } catch { exit 1 }"
+  if not errorlevel 1 goto :open_local
   timeout /t 1 >nul
 )
 
-set "LOCAL_URL=http://localhost:3000/"
-echo [提示] 尚未识别到服务地址，已尝试打开默认地址：%LOCAL_URL%
+echo [提示] 本地测试站尚未响应。请查看“GoC 本地课程站”窗口的错误信息；该窗口会保持打开。
+pause
+exit /b 1
 
 :open_local
 echo 正在打开：%LOCAL_URL%
 start "GoC 本地课程站" "%LOCAL_URL%"
 
 echo.
-echo 已启动。本地服务会持续运行；关闭服务窗口即可停止。
+echo 已启动。本地服务会持续运行；关闭“GoC 本地课程站”窗口即可停止。
 endlocal
