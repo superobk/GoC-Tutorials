@@ -160,3 +160,34 @@ git status --short --branch
 
 - Windows 双击启动器时，`npm run dev` 不会再报“`WRANGLER_LOG_PATH` is not recognized”。
 - 新增自动检查，防止未来重新加入 Unix 专用的脚本前缀。
+
+## 2026-07-19：修复 Windows 端口值为 `+`
+
+### 原因与改动
+
+上一版在批处理的嵌套 PowerShell 命令中使用管道符。Windows 对该嵌套管道的转义会产生 PowerShell 错误定位文本，批处理随后把其中的 `+` 误作端口，导致 `vinext --port +` 失败。
+
+本次改为无管道的 PowerShell `while` 循环选择空闲端口，并用 `findstr` 仅接受纯数字端口；不符合要求的值会被清空后回退为 3000，绝不会再传递 `+` 给 Vinext。
+
+### 本次实际操作
+
+文件改动使用 `apply_patch` 完成；终端中执行并核验的指令如下（不含凭据）：
+
+```sh
+sed -n '38,68p' 启动GoC课程站.bat
+sed -n '1,220p' tests/windows-launcher.test.mjs
+rg -n -- "LOCAL_PORT|3000\.\.3999|\^\||strictPort" 启动GoC课程站.bat tests/windows-launcher.test.mjs
+node --test tests/windows-launcher.test.mjs
+npm test
+npm run lint
+git diff --check
+git add 启动GoC课程站.bat tests/windows-launcher.test.mjs docs/同步到GitHub操作记录.md
+git commit -m "fix: validate Windows local port"
+git push
+git status --short --branch
+```
+
+### 结果
+
+- `vinext` 只能收到例如 `3000` 的纯数字端口，不会再收到 `+`。
+- 新增回归检查：禁止端口选择使用嵌套 PowerShell 管道，并要求有数字端口校验。

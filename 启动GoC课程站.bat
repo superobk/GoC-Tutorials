@@ -41,7 +41,9 @@ if not exist "node_modules" (
 echo.
 echo [3/3] 启动本地课程站，并自动打开实际本地地址...
 set "LOCAL_PORT="
-for /f %%P in ('powershell -NoProfile -Command "$used = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners().Port; 3000..3999 ^| Where-Object { $used -notcontains $_ } ^| Select-Object -First 1"') do set "LOCAL_PORT=%%P"
+for /f %%P in ('powershell -NoProfile -Command "$used = [System.Net.NetworkInformation.IPGlobalProperties]::GetIPGlobalProperties().GetActiveTcpListeners().Port; $p = 3000; while ($used -contains $p) { $p++ }; Write-Output $p"') do set "LOCAL_PORT=%%P"
+echo %LOCAL_PORT% | findstr /r "^[0-9][0-9]*$" >nul
+if errorlevel 1 set "LOCAL_PORT="
 if not defined LOCAL_PORT set "LOCAL_PORT=3000"
 set "LOCAL_URL=http://127.0.0.1:%LOCAL_PORT%/"
 
